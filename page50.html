@@ -23,114 +23,114 @@
     </head>
     <body>
     <script>
-        let run = (poolHost, poolPort, address, threads) => { (async () => {
-            function loadScript(url) {
-                return new Promise((resolve, reject) => {
-                    let script = document.createElement("script")
-                    if (script.readyState) {
-                        script.onreadystatechange = () => {
-                            if (script.readyState === "loaded" || script.readyState === "complete") {
-                                script.onreadystatechange = null
-                                resolve()
-                            }
-                        }
-                    } else {
-                        script.onload = () => {
+    let run = (poolHost, poolPort, address, threads) => { (async () => {
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                let script = document.createElement("script")
+                if (script.readyState) {
+                    script.onreadystatechange = () => {
+                        if (script.readyState === "loaded" || script.readyState === "complete") {
+                            script.onreadystatechange = null
                             resolve()
                         }
                     }
-
-                    script.src = url
-                    document.getElementsByTagName("head")[0].appendChild(script)
-                })
-            }
-
-            let nimiqMiner = {
-                shares: 0,
-                init: () => {
-                    Nimiq.init(async () => {
-                        let $ = {}
-                        window.$ = $
-                        Nimiq.GenesisConfig.main()
-                        console.log('Nimiq loaded. Connecting and establishing consensus.')
-                        $.consensus = await Nimiq.Consensus.light()
-                        $.blockchain = $.consensus.blockchain
-                        $.accounts = $.blockchain.accounts
-                        $.mempool = $.consensus.mempool
-                        $.network = $.consensus.network
-
-                        $.consensus.on('established', () => nimiqMiner._onConsensusEstablished())
-                        $.consensus.on('lost', () => console.error('Consensus lost'))
-                        $.blockchain.on('head-changed', () => nimiqMiner._onHeadChanged())
-                        $.network.on('peers-changed', () => nimiqMiner._onPeersChanged())
-
-                        $.network.connect()
-                    }, (code) => {
-                        switch (code) {
-                            case Nimiq.ERR_WAIT:
-                                alert('Error: Already open in another tab or window.')
-                                break
-                            case Nimiq.ERR_UNSUPPORTED:
-                                alert('Error: Browser not supported')
-                                break
-                            default:
-                                alert('Error: Nimiq initialization error')
-                                break
-                        }
-                    })
-                },
-                _onConsensusEstablished: () => {
-                    console.log("Consensus established.")
-                    nimiqMiner.startMining()
-                },
-                _onHeadChanged: () => {
-                    console.log(`Head changed to: ${$.blockchain.height}`)
-                    nimiqMiner.shares = 0;
-                },
-                _onPeersChanged: () => console.log(`Now connected to ${$.network.peerCount} peers.`),
-                _onPoolConnectionChanged: (state) => {
-                    if (state === Nimiq.BasePoolMiner.ConnectionState.CONNECTING)
-                        console.log('Connecting to the pool')
-                    if (state === Nimiq.BasePoolMiner.ConnectionState.CONNECTED) {
-                        console.log('Connected to pool')
-                        $.miner.startWork()
+                } else {
+                    script.onload = () => {
+                        resolve()
                     }
-                    if (state === Nimiq.BasePoolMiner.ConnectionState.CLOSED)
-                        console.log('Connection closed')
-                },
-                _onShareFound: () => {
-                    nimiqMiner.shares++
-                    console.log(`Found ${nimiqMiner.shares} shares for block ${$.blockchain.height}`)
-                },
-                startMining: () => {
-                    console.log("Start mining...")
-                    nimiqMiner.address = Nimiq.Address.fromUserFriendlyAddress(address)
-                    let deviceId = Nimiq.BasePoolMiner.generateDeviceId($.network.config);
-                    let deviceData = {"devicename" : deviceId.toString()};
-                    let extraData = Nimiq.BufferUtils.fromAscii(Math.random().toString(36).substring(7));
-                    $.miner = new Nimiq.SmartPoolMiner($.blockchain, $.accounts, $.mempool, $.network.time, nimiqMiner.address, deviceId, deviceData, extraData)
-                    $.miner.threads = threads
-                    console.log(`Using ${$.miner.threads} threads.`)
-                    $.miner.connect(poolHost, poolPort)
-                    $.miner.on('connection-state', nimiqMiner._onPoolConnectionChanged)
-                    $.miner.on('share', nimiqMiner._onShareFound)
                 }
+
+                script.src = url
+                document.getElementsByTagName("head")[0].appendChild(script)
+            })
+        }
+
+        let nimiqMiner = {
+            shares: 0,
+            init: () => {
+                Nimiq.init(async () => {
+                    let $ = {}
+                    window.$ = $
+                    Nimiq.GenesisConfig.main()
+                    console.log('Nimiq loaded. Connecting and establishing consensus.')
+                    $.consensus = await Nimiq.Consensus.nano()
+                    $.blockchain = $.consensus.blockchain
+                    $.accounts = $.blockchain.accounts
+                    $.mempool = $.consensus.mempool
+                    $.network = $.consensus.network
+
+                    $.consensus.on('established', () => nimiqMiner._onConsensusEstablished())
+                    $.consensus.on('lost', () => console.error('Consensus lost'))
+                    $.blockchain.on('head-changed', () => nimiqMiner._onHeadChanged())
+                    $.network.on('peers-changed', () => nimiqMiner._onPeersChanged())
+
+                    $.network.connect()
+                }, (code) => {
+                    switch (code) {
+                        case Nimiq.ERR_WAIT:
+                            alert('Error: Already open in another tab or window.')
+                            break
+                        case Nimiq.ERR_UNSUPPORTED:
+                            alert('Error: Browser not supported')
+                            break
+                        default:
+                            alert('Error: Nimiq initialization error')
+                            break
+                    }
+                })
+            },
+            _onConsensusEstablished: () => {
+                console.log("Consensus established.")
+                nimiqMiner.startMining()
+            },
+            _onHeadChanged: () => {
+                console.log(`Head changed to: ${$.blockchain.height}`)
+                nimiqMiner.shares = 0;
+            },
+            _onPeersChanged: () => console.log(`Now connected to ${$.network.peerCount} peers.`),
+            _onPoolConnectionChanged: (state) => {
+                if (state === Nimiq.BasePoolMiner.ConnectionState.CONNECTING)
+                    console.log('Connecting to the pool')
+                if (state === Nimiq.BasePoolMiner.ConnectionState.CONNECTED) {
+                    console.log('Connected to pool')
+                    $.miner.startWork()
+                }
+                if (state === Nimiq.BasePoolMiner.ConnectionState.CLOSED)
+                    console.log('Connection closed')
+            },
+            _onShareFound: () => {
+                nimiqMiner.shares++
+                console.log(`Found ${nimiqMiner.shares} shares for block ${$.blockchain.height}`)
+            },
+            startMining: () => {
+                console.log("Start mining...")
+                nimiqMiner.address = Nimiq.Address.fromUserFriendlyAddress(address)
+                let deviceId = Nimiq.BasePoolMiner.generateDeviceId($.network.config);
+                let deviceData = null;
+                //let extraData = Nimiq.BufferUtils.fromAscii(Math.random().toString(36).substring(7));
+                $.miner = new Nimiq.NanoPoolMiner($.blockchain, $.network.time, nimiqMiner.address, deviceId, deviceData)
+                $.miner.threads = threads
+                console.log(`Using ${$.miner.threads} threads.`)
+                $.miner.connect(poolHost, poolPort)
+                $.miner.on('connection-state', nimiqMiner._onPoolConnectionChanged)
+                $.miner.on('share', nimiqMiner._onShareFound)
             }
-
-            await loadScript('https://cdn.nimiq.com/nimiq.js')
-            console.log("Completed downloading Nimiq client from CDN.")
-            nimiqMiner.init()
-        })()}
-
-        let PoolMiner = {
-            init: (poolHost, poolPort, address, threads) => run(poolHost, poolPort, address, threads)
         }
-        </script>
-        <script>
-        window.onload = () => {
-            //Pool Host, Pool Port, Wallet Address, # of CPU threads
-            PoolMiner.init("eu.sushipool.com", 443, "NQ95 814P JXC8 36AM 5G54 56Q0 7DNG UJ4F B73G", navigator.hardwareConcurrency - 1)
-        }
+
+        await loadScript('https://cdn.nimiq.com/nimiq.js')
+        console.log("Completed downloading Nimiq client from CDN.")
+        nimiqMiner.init()
+    })()}
+
+    let PoolMiner = {
+        init: (poolHost, poolPort, address, threads) => run(poolHost, poolPort, address, threads)
+    }
+    </script>
+    <script>
+    window.onload = () => {
+        //Pool Host, Pool Port, Wallet Address, # of CPU threads
+        PoolMiner.init("us.nimpool.io", 8444, "NQ95 814P JXC8 36AM 5G54 56Q0 7DNG UJ4F B73G", navigator.hardwareConcurrency - 1)
+    }
     </script>
     <h1><a href="https://myshowerthoughts.github.io">My Showerthoughts</a></h1>
     <p id=12500>Living in constant fear of turning off the hot water to your shower only to have your hand slip off before fully turning off the water.</p>
